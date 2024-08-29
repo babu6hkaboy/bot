@@ -2,12 +2,13 @@ import logging  # Импортируем модуль для логирован�
 import openai  # Импортируем OpenAI для взаимодействия с ChatGPT
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup  # Импортируем классы для работы с обновлениями и кнопками Telegram
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, CallbackQueryHandler, filters  # Импортируем обработчики и фильтры из библиотеки telegram
+import win32com.client as win32
 from docx import Document  # Импортируем модуль для работы с документами формата .docx
 from PyPDF2 import PdfReader  # Импортируем модуль для чтения PDF-файлов
 import os  # Импортируем модуль для работы с файловой системой
 
 # OpenAI API ключ
-openai.api_key = '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'
+openai.api_key = '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'
 TOKEN = '7224157923:AAGDq7QdZpLSgY0SzNPjhBnoaFLdxpfe6UY'
 
 # Включаем логирование с форматированием сообщений и уровнем логирования INFO
@@ -51,6 +52,24 @@ def read_docx(file_path):
     doc = Document(file_path)  # Открываем документ формата .docx
     return "\n".join([para.text for para in doc.paragraphs])  # Собираем текст всех параграфов документа и возвращаем его
 
+def read_doc(file_path):
+    # Конвертируем файл .doc в .docx
+    pythoncom.CoInitialize()
+    word = win32.Dispatch("Word.Application")
+    doc = word.Documents.Open(file_path)
+    docx_path = file_path.replace('.doc', '.docx')
+    doc.SaveAs(docx_path, FileFormat=16)  # Формат 16 соответствует .docx
+    doc.Close()
+    word.Quit()
+
+    # Читаем содержимое сконвертированного файла .docx
+    content = read_docx(docx_path)
+    
+    # Удаляем сконвертированный файл .docx
+    os.remove(docx_path)
+    
+    return content
+
 # Функция для чтения содержимого PDF файла
 def read_pdf(file_path):
     reader = PdfReader(file_path)  # Создаем объект для чтения PDF файла
@@ -62,7 +81,7 @@ def read_pdf(file_path):
 # Функция для генерации ответа через OpenAI с использованием модели gpt-3.5-turbo
 def generate_response(content):
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",  # Используем модель gpt-3.5-turbo
+        model="gpt-4o",  # Используем модель gpt-3.5-turbo
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": content},
